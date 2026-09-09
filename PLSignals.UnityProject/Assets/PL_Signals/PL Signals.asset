@@ -1,0 +1,85 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -416170577, guid: 5cdec1dc40dc231478e0fa2a8b97a5b2, type: 3}
+  m_Name: PL Signals
+  m_EditorClassIdentifier: 
+  ModId: PLSignals
+  ModName: Polish Signal Pack
+  Author: Fuggschen
+  Version: 0.9.9
+  HomePage: https://www.nexusmods.com/derailvalley/mods/1702
+  Repository: https://raw.githubusercontent.com/Fuggschen/DV-PLSignals/main/repository.json
+  Signal: {fileID: 175587909857667712, guid: 4ff444ddf7affe74c945235341c8445f, type: 3}
+  DivergingSignal: {fileID: 0}
+  LeftJunctionSignal: {fileID: 0}
+  RightJunctionSignal: {fileID: 0}
+  EntrySignal: {fileID: 3918123591800621858, guid: def97ba25a9b6424f8cf8e4dd51d3c52,
+    type: 3}
+  ExitSignal: {fileID: 3195135028223836703, guid: 3ba121770026604408f68bc2fed96dde,
+    type: 3}
+  ExitPassengerSignal: {fileID: 0}
+  ExitMainlineSignal: {fileID: 0}
+  ShuntingSignal: {fileID: 4086434879198099111, guid: e8a1b1954d5969f4ea9f7024ad983f38,
+    type: 3}
+  MajorShuntingSignal: {fileID: 4159055438495532006, guid: ee3ed1104e9584543bf1cb17f53e34b9,
+    type: 3}
+  JunctionShuntingSignal: {fileID: 0}
+  SpacingSignal: {fileID: 0}
+  TurntableSignal: {fileID: 0}
+  BufferStopSignal: {fileID: 1443148232194768525, guid: 6213120a98459fb4e9eee8de266eed8f,
+    type: 3}
+  BufferStopSignalIsStatic: 0
+  DistantSignal: {fileID: 1993263864061442148, guid: 2a1c2cc5ee583df4c8fd39f3adb0446c,
+    type: 3}
+  DistantSignalDistance: 300
+  DistantSignalMinimumDistance: 200
+  DistantTolerance: 50
+  RepeaterSignal: {fileID: 5660296311072110118, guid: 4a7d1d36048391f42a00f7583d6474c1,
+    type: 3}
+  RepeaterSignalDistance: 100
+  RepeaterSignalMinimumDistance: 200
+  CombinedSignal: {fileID: 0}
+  CombinedLeftJunctionSignal: {fileID: 0}
+  CombinedRightJunctionSignal: {fileID: 0}
+  EnableOldVersions: 0
+  OldSignal: {fileID: 0}
+  OldDivergingSignal: {fileID: 0}
+  OldLeftJunctionSignal: {fileID: 0}
+  OldRightJunctionSignal: {fileID: 0}
+  OldEntrySignal: {fileID: 0}
+  OldExitSignal: {fileID: 0}
+  OldExitPassengerSignal: {fileID: 0}
+  OldExitMainlineSignal: {fileID: 0}
+  OldShuntingSignal: {fileID: 0}
+  OldMajorShuntingSignal: {fileID: 0}
+  OldJunctionShuntingSignal: {fileID: 0}
+  OldSpacingSignal: {fileID: 0}
+  OldTurntableSignal: {fileID: 0}
+  OldBufferStopSignal: {fileID: 0}
+  OldBufferStopSignalIsStatic: 0
+  OldDistantSignal: {fileID: 0}
+  OldRepeaterSignal: {fileID: 0}
+  OldCombinedSignal: {fileID: 0}
+  OldCombinedLeftJunctionSignal: {fileID: 0}
+  OldCombinedRightJunctionSignal: {fileID: 0}
+  OtherSignals: []
+  UseLettersForMultipleSignalsInControllers: 0
+  EntryFormat: '{1}{0}<br>m'
+  ExitFormat: '{1}{0}<br>m'
+  GenericStationFormat: '{0}'
+  TrackFormat: "S{0} \xBD"
+  MainlineFormat: "S{0} \xBD"
+  DistantFormat: To{1}
+  RepeaterFormat: ISp{1}
+  SubDistantFormat: '{0}'
+  FallbackFormat: '{0}'
+  ExporterVersion: 1.1.0

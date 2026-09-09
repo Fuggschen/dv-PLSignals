@@ -1,0 +1,15 @@
+{
+	"Id": "PLSignals",
+	"Version": "1.0.0",
+	"DisplayName": "Polish Signal Pack",
+	"Author": "Fuggschen",
+  	"AssemblyName": "PLSignals.Game.dll",
+  	"EntryMethod": "PLSignals.Main.Load",
+  	"Requirements": [
+    	"DVSignals"
+  	],
+	"ManagerVersion": "0.27.3",
+	"HomePage": "https://www.nexusmods.com/derailvalley/mods/1702",
+	"Repository": "https://raw.githubusercontent.com/Fuggschen/DV-PLSignals/refs/heads/main/repository.json",
+	"MultiplayerCompatibility": "All"
+}
