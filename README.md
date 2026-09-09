@@ -1,129 +1,123 @@
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
+## You ever played SimRail? You live in Poland? You just want different Signals? Then this Pack is for you!
 
+### I present you today the Polish Signal Pack!
 
+This Signal pack is as accurate as it gets while still considering the gameplay aspect of Derail Valley.
 
+> It is recommended to play with "Enable Special Matching Path" ON in the "DV Signals" mod settings, but OFF is also supported.
+> The Setting "Require Reserving Signals to Clear" can be ON or OFF, depending on your playstyle. ON will require you to reserve every signal you want to drive through.
 
-<!-- PROJECT TITLE -->
-<div align="center">
-	<h1>Unity Mod Manager Mod Template</h1>
-	<p>
-		A template for creating <a href="http://www.derailvalley.com/">Derail Valley</a> mods that load via <a href="https://www.nexusmods.com/site/mods/21">Unity Mod Manager</a>.
-		<br />
-		<br />
-		<a href="https://github.com/derail-valley-modding/template-umm/issues">Report Bug</a>
-		·
-		<a href="https://github.com/derail-valley-modding/template-umm/issues">Request Feature</a>
-	</p>
-</div>
+### Installation instructions
+Just install this zip via UMM or [DVMM](https://www.nexusmods.com/derailvalley/mods/1637) and select "PLSignals" as your Signal Pack in "DV Signals" mod settings.
 
+### Requirements
+* [DV Signals](https://www.nexusmods.com/derailvalley/mods/1636)
 
+#### *If you like reading and want to get a more deepdive of the logic, continue below:*
 
+This Signal Packs differentiates between Main Signals:
+* Road Signal
+* Entry Signal
+* Exit Signal
 
-<!-- TABLE OF CONTENTS -->
-<details>
-	<summary>Table of Contents</summary>
-	<ol>
-		<li><a href="#about-the-project">About The Project</a></li>
-		<li><a href="#building">Building</a></li>
-		<li><a href="#packaging">Packaging</a></li>
-		<li><a href="#license">License</a></li>
-	</ol>
-</details>
+Also between Distant Signals:
+* Distant Signal
+* Repeater Signal
 
+And also between Shunting Signals:
+* Shunting Signal
+* Major Shunting Signal
 
+How a signal behaves, depends entirely on what type of signal you are approaching, but the basic rules still apply (The possible signal aspect names will be shown in parentheses):
 
+---
 
-<!-- ABOUT THE PROJECT -->
+### Basic Rules:
+Top 3 Lights of any Main Signal functions mostly like a traffic light:<br>
+**Green**: Go as fast as the track allows (can be S2, S6, S10 or S10a)<br>
+**Yellow**: Expect Stop on the next signal (can be S5, S9, S13 or S13a)<br>
+**Red**: Stop (can be S1 or Sz)
 
-## About The Project
+> The first two lights can also flash:<br>
+> **Green Flashing**: The next signal points to a fast (60km/h or above) junction path (can be S3, S7, S11 or S11a)<br>
+> **Yellow Flashing**: The next signal points to a normal (40-50km/h) or slow (10-30km/h) junction path (can be S4, S8, S12 or S12a)
 
-This is a template for Derail Valley mods that load via the Unity Mod Manager mod loader.  
-TODO: Instructions for how mod creators use this template.
+---
 
+### Diverging Light:
+The **bottom yellow light** (4th from top) only activates if the junction you are approaching is in a diverging position. Do with this information what you want since its not entirely consistent in Derail Valley (if its right or left) but usually points to the slower path.
 
+---
 
+### Speed Bar:
+Then there is the Speed Bar (3 lights horizontal aligned below the main lights). Here it shows you the speed for **THIS** signal and **ONLY** if the path is **DIVERGING** (bottom yellow light is lit):<br>
+**Green Bar**: 60km/h or above (can be S6, S7, S8 or S9)<br>
+**Yellow Bar**: 40-50km/h (can be S10a, S11a, S12a or S13a)<br>
+**No Bar**: 10-30km/h (can be S10, S11, S12 or S13)
 
-<!-- BUILDING -->
+The speeds are reduced from the original system to make it a better fit into the Derail Valley Network.
 
-## Building
+> Note to Road Signals:<br>
+> If you encounter a Red Road Signal and want to pass it, use the Comms Radio to Reserve it. It will align the switches for you. If it then is still **Red** but the **White** Light blinks (called Sz), that means that this track is actually **occupied and you enter at your own risk!**
 
-Building the project requires some initial setup, after which running `dotnet build` will do a Debug build or running `dotnet build -c Release` will do a Release build.
+---
 
-### References Setup
+### Entry and Exit Signals:
+Those have the addition "m" to them which means that they can show a shunting aspect.
 
-After cloning the repository, some setup is required in order to successfully build the mod DLLs. You will need to create a new [Directory.Build.targets][references-url] file to specify your local reference paths. This file will be located in the main directory, next to MOD_NAME.sln.
+> You can get a shunting clearance by reserving an Entry, Exit or Shunting Signal with the Comms Radio!
 
-Below is an example of the necessary structure. When creating your targets file, you will need to replace the reference paths with the corresponding folders on your system. Make sure to include semicolons **between** each of the paths and no semicolon after the last path. Also note that any shortcuts you might use in file explorer—such as %ProgramFiles%—won't be expanded in these paths. You have to use full, absolute paths.
-```xml
-<Project>
-	<PropertyGroup>
-		<ReferencePath>
-			C:\Program Files (x86)\Steam\steamapps\common\Derail Valley\DerailValley_Data\Managed\
-		</ReferencePath>
-		<AssemblySearchPaths>$(AssemblySearchPaths);$(ReferencePath);</AssemblySearchPaths>
-	</PropertyGroup>
-</Project>
-```
+If Entry/Exit Signals point to any track that is occupied, they will show **Red**. Once you've got your shunting clearance, they will turn **White**, allowing you to proceed *ON SIGHT.*
+> Damage caused during shunting cannot be blamed on a signal fault. You have been warned.
 
-### Line Endings Setup
+---
 
-It's recommended to use Git's [autocrlf mode][autocrlf-url] on Windows. Activate this by running `git config --global core.autocrlf true`.
+### Shunting Signals:
+Those have a **Blue** and a White light.
 
+**Blue**: Stop (Ms1)<br>
+**White**: Proceed ON SIGHT (Ms2)
 
+> This Pack uses custom reserving logic for Shunting Signals. If you Reserve an Entry or Exit signal, it will reserve also all shunting signals on it's path until it hits an occupied track or the next Main Signal. To allow entry to an occupied track, you need to reserve the **Blue** showing Shunting Signal at the occupied track again.
 
+*Major Shunting Signals work the same way as normal shunting signals but they default to **Blue** and need reservation to clear, no matter what setting you choose in the "DV Signals" mod settings.*
 
-<!-- PACKAGING -->
+---
 
-## Packaging
+### Distant and Repeater Signals:
+Distant Signals are placed 300 meters before a main signal, if the track allows it.
+Repeater Signals are placed 100 meters before a signal, if the main signal is visually obstructed or hard to see.
 
-To package a build for distribution, you can run the `package.ps1` PowerShell script in the root of the project. If no parameters are supplied, it will create a .zip file ready for distribution in the dist directory. A post build event is configured to run this automatically after each successful Release build.
+The meaning of the Lights is fairly simple:<br>
+**Green**: Next Signal is Vmax (Os2/Sp2)<br>
+**Green Blinking**: Next Signal is 60km/h or above (Os3/Sp3)<br>
+**Yellow Blinking**: Next Signal is 10-50km/h (Os4/Sp4)<br>
+**Yellow**: Next Signal is **Stop** (Os1/Sp1)
 
-Linux: `pwsh ./package.ps1`
-Windows: `powershell -executionpolicy bypass .\package.ps1`
+> Vmax only means track speed limit. Blinking only occurs if the next junction path is diverging
 
+Repeater Signals have the same logic but are marked with an additional White light. Also **Yellow** and **Green** Lamps switch position.
 
-### Parameters
+---
 
-Some parameters are available for the packaging script.
+### Signs:
+#### There are two types of Signs in this Signal Pack:
 
-#### -NoArchive
+W5:<br>
+This is a half-circle with a black border mounted on a pole. This sign marks the maximum range a shunting train may leave the station. Gameplaywise this usually marks the position where jobs would despawn if you travel past that point (there is a bit of a buffer behind it but this is the safest distance).
 
-Leave the package contents uncompressed in the output directory.
+Z1:<br>
+This is a black square with white circle in the middle where a black bar crosses horizontally. This marks the end of Track on a buffer stop. You cannot continue past it. If you do, you f'ed up.
 
-#### -OutputDirectory
+---
 
-Specify a different output directory.
-For instance, this can be used in conjunction with `-NoArchive` to copy the mod files into your Derail Valley installation directory.
+### Shout outs
 
+#### Big thanks to the following persons who made it possible to have it as accurate as it gets:
 
-
-
-<!-- LICENSE -->
-
-## License
-
-Source code is distributed under the MIT license.
-See [LICENSE][license-url] for more information.
-
-
-
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-
-[contributors-shield]: https://img.shields.io/github/contributors/derail-valley-modding/template-umm.svg?style=for-the-badge
-[contributors-url]: https://github.com/derail-valley-modding/template-umm/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/derail-valley-modding/template-umm.svg?style=for-the-badge
-[forks-url]: https://github.com/derail-valley-modding/template-umm/network/members
-[stars-shield]: https://img.shields.io/github/stars/derail-valley-modding/template-umm.svg?style=for-the-badge
-[stars-url]: https://github.com/derail-valley-modding/template-umm/stargazers
-[issues-shield]: https://img.shields.io/github/issues/derail-valley-modding/template-umm.svg?style=for-the-badge
-[issues-url]: https://github.com/derail-valley-modding/template-umm/issues
-[license-shield]: https://img.shields.io/github/license/derail-valley-modding/template-umm.svg?style=for-the-badge
-[license-url]: https://github.com/derail-valley-modding/template-umm/blob/main/LICENSE
-[references-url]: https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2022
-[autocrlf-url]: https://www.git-scm.com/book/en/v2/Customizing-Git-Git-Configuration#_formatting_and_whitespace
+* Pioterenewicz - Who helped in making the Infographic and did alot of testing and finding quirks
+* Istvan - Alot of valuable information and bug hunting
+* Wiz - For the amazing Signals Framework and help while developing
+* [Voynaroveech on Sketchfab](https://sketchfab.com/3d-models/railway-light-signals-19ec11684eae47eb96474634750b4398) - For the 3D Model
+* Absolarix - New Textures and Model Edits
+* B0SS/Adrii_95 - Allowed me to use the Magnets and Z1 Signs from the base pack
