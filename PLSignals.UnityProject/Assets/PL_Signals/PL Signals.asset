@@ -15,7 +15,7 @@ MonoBehaviour:
   ModId: PLSignals
   ModName: Polish Signal Pack
   Author: Fuggschen
-  Version: 0.9.9
+  Version: 1.0.1
   HomePage: https://www.nexusmods.com/derailvalley/mods/1702
   Repository: https://raw.githubusercontent.com/Fuggschen/DV-PLSignals/main/repository.json
   Signal: {fileID: 175587909857667712, guid: 4ff444ddf7affe74c945235341c8445f, type: 3}
