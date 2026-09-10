@@ -155,15 +155,34 @@ namespace PLSignals.Patches
             var block = reservedSignal.Block;
             if (block == null) return;
 
-            // Build a set of TrackInfo (track + direction) from the reserved block
-            // so we can check both track identity and direction.
-            var reservedTrackSet = new HashSet<TrackInfo>(block.Tracks);
+            // If a truncated block exists (switch alignment disabled), use it instead.
+            // Otherwise use the full block.
+            bool hasTruncated = TruncateReservationPatch.TruncatedBlocks.TryGetValue(reservedSignal, out var truncatedTracks);
 
-            // Also build an ordered list for position-based sorting.
+            // Build a set of TrackInfo (track + direction) from the reserved block.
+            var reservedTrackSet = new HashSet<TrackInfo>();
+
+            // Build an ordered list for position-based sorting.
             var trackOrder = new Dictionary<RailTrack, int>();
-            for (int i = 0; i < block.Tracks.Length; i++)
+
+            if (hasTruncated)
             {
-                trackOrder[block.Tracks[i].Track] = i;
+                // Use only the tracks up to the misaligned switch.
+                int order = 0;
+                foreach (var trackInfo in block.Tracks)
+                {
+                    if (!truncatedTracks!.Contains(trackInfo.Track)) break;
+                    reservedTrackSet.Add(trackInfo);
+                    trackOrder[trackInfo.Track] = order++;
+                }
+            }
+            else
+            {
+                reservedTrackSet = new HashSet<TrackInfo>(block.Tracks);
+                for (int i = 0; i < block.Tracks.Length; i++)
+                {
+                    trackOrder[block.Tracks[i].Track] = i;
+                }
             }
 
             // Find overlapping shunting controllers and determine their order.
@@ -292,6 +311,9 @@ namespace PLSignals.Patches
         private static void Prefix(SignalBase signal)
         {
             if (!VirtualReservationHelper.IsOurPackActive()) return;
+
+            // Clean up truncated block tracking.
+            TruncateReservationPatch.TruncatedBlocks.Remove(signal);
 
             // If this is a virtual reservation, clean it up.
             VirtualReservationHelper.RemoveVirtualReservation(signal);
