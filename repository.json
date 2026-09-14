@@ -2,6 +2,11 @@
 	"Releases": [
 		{
 			"Id": "PLSignals",
+			"Version": "1.0.2",
+			"DownloadUrl": "https://github.com/Fuggschen/dv-PLSignals/releases/download/v1.0.2/PLSignals_v1.0.2.zip"
+		},
+		{
+			"Id": "PLSignals",
 			"Version": "1.0.1",
 			"DownloadUrl": "https://github.com/Fuggschen/dv-PLSignals/releases/download/v1.0.1/PLSignals_v1.0.1.zip"
 		},

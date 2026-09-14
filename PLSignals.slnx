@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="PLSignals.Game/PLSignals.Game.csproj" />
+  <Project Path="PLSignals.MP/PLSignals.MP.csproj" />
 </Solution>

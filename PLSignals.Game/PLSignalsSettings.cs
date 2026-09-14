@@ -1,3 +1,4 @@
+using Signals.Game;
 using UnityModManagerNet;
 
 namespace PLSignals
@@ -12,6 +13,9 @@ namespace PLSignals
             Save(this, modEntry);
         }
 
-        public void OnChange() { }
+        public void OnChange()
+        {
+            Main.MpBroadcastSettings();
+        }
     }
 }
