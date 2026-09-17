@@ -1,3 +1,4 @@
+using System;
 using MPAPI;
 using MPAPI.Interfaces;
 using MPAPI.Interfaces.Packets;
@@ -5,34 +6,53 @@ using PLSignals;
 
 namespace PLSignals.MP
 {
-    public static class MultiplayerManager
+    public static class Bootstrap
     {
-        private static IServer? s_server;
-        private static IClient? s_client;
+        public static void Initialize()
+        {
+            if (!MultiplayerAPI.IsMultiplayerLoaded)
+                return;
 
-        public static void StartServer()
+            var impl = new MultiplayerManager();
+            PLMPUtil.Register(impl);
+
+            UnityEngine.Debug.Log("[PLSignals] PLSignals.MP: Bootstrap initialized.");
+        }
+    }
+
+    public class MultiplayerManager : IPLMPIntegration
+    {
+        private static PLSettingsPacket CreatePacket()
+        {
+            return new PLSettingsPacket
+            {
+                AlignSwitchesOnReserve = Main.Settings.AlignSwitchesOnReserve
+            };
+        }
+
+        private IServer? s_server;
+        private IClient? s_client;
+
+        public void StartServer()
         {
             try
             {
                 s_server = MultiplayerAPI.Server;
                 s_server.RegisterPacket<PLSettingsPacket>((packet, sender) =>
                 {
-                    // Forward settings to all other clients.
                     s_server.SendPacketToAll(packet, excludePlayer: sender);
-                    // Apply on host too.
                     ApplySettings(packet);
                 });
 
-                // When a player connects, send them our current settings.
                 s_server.OnPlayerConnected += PlayerConnected;
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 UnityEngine.Debug.LogError($"[PLSignals] Failure loading PLSignals server: {e.Message}");
             }
         }
 
-        public static void StartClient()
+        public void StartClient()
         {
             try
             {
@@ -42,17 +62,17 @@ namespace PLSignals.MP
                     ApplySettings(packet);
                 });
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 UnityEngine.Debug.LogError($"[PLSignals] Failure loading PLSignals client: {e.Message}");
             }
         }
 
-        public static void BroadcastSettings()
+        public void BroadcastSettings(bool alignSwitchesOnReserve)
         {
             var packet = new PLSettingsPacket
             {
-                AlignSwitchesOnReserve = Main.Settings.AlignSwitchesOnReserve
+                AlignSwitchesOnReserve = alignSwitchesOnReserve
             };
 
             if (MultiplayerAPI.Instance.IsHost && s_server != null)
@@ -65,12 +85,9 @@ namespace PLSignals.MP
             }
         }
 
-        private static void PlayerConnected(IPlayer player)
+        private void PlayerConnected(IPlayer player)
         {
-            s_server?.SendPacketToPlayer(new PLSettingsPacket
-            {
-                AlignSwitchesOnReserve = Main.Settings.AlignSwitchesOnReserve
-            }, player);
+            s_server?.SendPacketToPlayer(CreatePacket(), player);
         }
 
         private static void ApplySettings(PLSettingsPacket packet)
@@ -78,7 +95,7 @@ namespace PLSignals.MP
             Main.Settings.AlignSwitchesOnReserve = packet.AlignSwitchesOnReserve;
         }
 
-        public static void Stop()
+        public void Stop()
         {
             if (s_server != null)
             {

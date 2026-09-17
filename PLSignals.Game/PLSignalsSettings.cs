@@ -1,4 +1,3 @@
-using Signals.Game;
 using UnityModManagerNet;
 
 namespace PLSignals
@@ -15,7 +14,7 @@ namespace PLSignals
 
         public void OnChange()
         {
-            Main.MpBroadcastSettings();
+            PLMPUtil.BroadcastSettings(AlignSwitchesOnReserve);
         }
     }
 }
