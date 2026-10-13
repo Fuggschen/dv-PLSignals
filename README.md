@@ -65,9 +65,10 @@ The speeds are reduced from the original system to make it a better fit into the
 ### Entry and Exit Signals:
 Those have the addition "m" to them which means that they can show a shunting aspect.
 
-> You can get a shunting clearance by reserving an Entry, Exit or Shunting Signal with the Comms Radio!
+> You can get a shunting clearance by reserving an Entry or Exit Signal with the **SHUNT** option of the Comms Radio (cycle past the durations), or by reserving any Shunting Signal normally. A SHUNT reservation lasts **60 seconds** and marks the movement as a shunting move.
 
-If Entry/Exit Signals point to any track that is occupied, they will show **Red**. Once you've got your shunting clearance, they will turn **White**, allowing you to proceed *ON SIGHT.*
+If Entry/Exit Signals point to any track that is occupied, they will show **Red** for normal train movements. Once you've got your shunting clearance, they will turn **White**, allowing you to proceed *ON SIGHT.*
+Normal reservations (without SHUNT) are treated as train movements and never show the shunting aspect. The shunting clearance is dropped again as soon as the SHUNT reservation ends.
 > Damage caused during shunting cannot be blamed on a signal fault. You have been warned.
 
 ---
