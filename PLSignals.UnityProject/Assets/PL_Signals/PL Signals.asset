@@ -15,7 +15,7 @@ MonoBehaviour:
   ModId: PLSignals
   ModName: Polish Signal Pack
   Author: Fuggschen
-  Version: 1.0.1
+  Version: 1.0.4
   HomePage: https://www.nexusmods.com/derailvalley/mods/1702
   Repository: https://raw.githubusercontent.com/Fuggschen/DV-PLSignals/main/repository.json
   Signal: {fileID: 175587909857667712, guid: 4ff444ddf7affe74c945235341c8445f, type: 3}
@@ -40,12 +40,12 @@ MonoBehaviour:
   BufferStopSignalIsStatic: 0
   DistantSignal: {fileID: 1993263864061442148, guid: 2a1c2cc5ee583df4c8fd39f3adb0446c,
     type: 3}
-  DistantSignalDistance: 300
+  DistantSignalDistance: 305
   DistantSignalMinimumDistance: 200
   DistantTolerance: 50
   RepeaterSignal: {fileID: 5660296311072110118, guid: 4a7d1d36048391f42a00f7583d6474c1,
     type: 3}
-  RepeaterSignalDistance: 100
+  RepeaterSignalDistance: 80
   RepeaterSignalMinimumDistance: 200
   CombinedSignal: {fileID: 0}
   CombinedLeftJunctionSignal: {fileID: 0}
