@@ -8,11 +8,8 @@ using SignalBase = Signals.Game.Signal;
 namespace PLSignals.Patches
 {
     /// <summary>
-    /// Helpers for the per-signal "Shunting Allowed" flag.
-    ///
-    /// Entry and exit signals of our pack must not show shunting aspects for normal
-    /// train reservations, so their flag defaults to <see langword="false"/>. It is
-    /// only raised by the SHUNT reservation option (see <see cref="ShuntReservationTracker"/>).
+    /// Entry/exit signals must not show shunting aspects for normal reservations, so their
+    /// "Shunting Allowed" flag defaults to <see langword="false"/> and is only raised by the SHUNT option.
     /// </summary>
     internal static class ShuntingStatusHelper
     {
@@ -20,10 +17,8 @@ namespace PLSignals.Patches
             typeof(SignalBase).GetField("_shuntingAllowed", BindingFlags.NonPublic | BindingFlags.Instance);
 
         /// <summary>
-        /// Checks if our pack is the active pack. Unlike
-        /// <see cref="VirtualReservationHelper.IsOurPackActive"/>, this also returns
-        /// <see langword="true"/> while signals are being created, when
-        /// <see cref="SignalManager.Running"/> is not set yet.
+        /// Like <see cref="VirtualReservationHelper.IsOurPackActive"/>, but also <see langword="true"/>
+        /// during signal creation, before <see cref="SignalManager.Running"/> is set.
         /// </summary>
         internal static bool IsOurPackActiveForCreation()
         {
@@ -32,9 +27,8 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Checks if the signal was instantiated from one of our pack's entry or exit
-        /// signal prefabs. Also covers merged controllers (which are re-instantiated
-        /// from the same prefabs) and the "Old" pack slots.
+        /// True for signals instantiated from our entry/exit prefabs, including merged
+        /// controllers and the "Old" pack slots.
         /// </summary>
         internal static bool IsEntryOrExit(SignalBase signal)
         {
@@ -61,16 +55,13 @@ namespace PLSignals.Patches
 
                 var slotName = slot.gameObject.name;
 
-                // Instantiated clones are named "<prefab>(Clone)", but accept the plain
-                // name as well in case naming ever changes.
+                // Clones are named "<prefab>(Clone)"; accept the plain name too.
                 return instanceName == slotName || instanceName == slotName + "(Clone)";
             }
         }
 
         /// <summary>
-        /// Applies the default shunting flag (<see langword="false"/> for entry/exit
-        /// signals) without firing change events, so signal creation does not spam
-        /// multiplayer packets.
+        /// Sets the flag without firing change events, so signal creation doesn't spam multiplayer packets.
         /// </summary>
         internal static void ApplyDefault(SignalBase signal)
         {
@@ -101,9 +92,8 @@ namespace PLSignals.Patches
     }
 
     /// <summary>
-    /// Makes the multiplayer join-state sync treat the entry/exit default
-    /// (<see langword="false"/>) as the default state, so non-default shunting flags
-    /// (e.g. an active shunt reservation) are synchronised to joining players.
+    /// MP join-state sync treats the entry/exit default (<see langword="false"/>) as default,
+    /// so active shunt reservations are synchronised to joining players.
     /// </summary>
     [HarmonyPatch(typeof(SignalBase), "get_IsDefaultShuntingAllowed")]
     internal static class IsDefaultShuntingAllowedPatch

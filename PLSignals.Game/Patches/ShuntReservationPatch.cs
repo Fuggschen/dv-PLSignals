@@ -7,30 +7,24 @@ using SignalBase = Signals.Game.Signal;
 namespace PLSignals.Patches
 {
     /// <summary>
-    /// Tracks shunt reservations (Comms Radio "SHUNT" option) and keeps the
-    /// "Shunting Allowed" flag in sync with their lifetime:
-    /// a successful SHUNT reservation raises the flag, and it is restored to its
-    /// previous value as soon as that reservation ends (expiry, cancellation, or a
-    /// normal train reservation taking over).
+    /// Keeps the "Shunting Allowed" flag in sync with SHUNT reservations: raised on success,
+    /// restored to the previous value once the reservation ends (expiry, cancel, or a normal one taking over).
     /// </summary>
     internal static class ShuntReservationTracker
     {
         /// <summary>
-        /// Signals currently shunt-enabled by us, mapped to the flag value to restore
-        /// when their reservation ends.
+        /// Shunt-enabled signals → flag value to restore when their reservation ends.
         /// </summary>
         private static readonly Dictionary<SignalBase, bool> s_shuntReservations = new Dictionary<SignalBase, bool>();
 
         /// <summary>
-        /// Signals whose next reservation was requested as a SHUNT reservation, but has
-        /// not succeeded yet.
+        /// Signals with a SHUNT reservation requested but not yet made.
         /// </summary>
         private static readonly HashSet<SignalBase> s_pendingShunt = new HashSet<SignalBase>();
 
         /// <summary>
-        /// Nested <see cref="TrackReserver.UpdateReservation"/> calls per signal. Block
-        /// updates renew existing reservations by clearing and re-reserving them, which
-        /// must not be treated as a new train movement.
+        /// Nested <see cref="TrackReserver.UpdateReservation"/> calls per signal: the renewal's
+        /// clear + re-reserve must not count as a new train movement.
         /// </summary>
         private static readonly Dictionary<SignalBase, int> s_renewing = new Dictionary<SignalBase, int>();
 
@@ -42,8 +36,7 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Registers that the given signal is about to be reserved with the SHUNT option,
-        /// so a successful reservation enables shunting on it.
+        /// Marks the signal's next reservation as SHUNT, so success enables shunting on it.
         /// </summary>
         internal static void MarkShuntAttempt(SignalBase signal)
         {
@@ -52,9 +45,6 @@ namespace PLSignals.Patches
             s_pendingShunt.Add(signal);
         }
 
-        /// <summary>
-        /// Drops a pending SHUNT reservation attempt that did not succeed.
-        /// </summary>
         internal static void CancelShuntAttempt(SignalBase signal)
         {
             s_pendingShunt.Remove(signal);
@@ -81,15 +71,13 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Drops all shunt state. Called when all reservations are dropped at once
-        /// (which fires no individual events).
+        /// Drops all shunt state. Called when all reservations are dropped at once, which fires no individual events.
         /// </summary>
         internal static void ClearAll()
         {
             foreach (var item in s_shuntReservations)
             {
-                // No aspect updates: this runs during teardown, when definitions may
-                // already be destroyed.
+                // No aspect updates: definitions may already be destroyed during teardown.
                 item.Key.SetShuntingStatus(item.Value);
             }
 
@@ -111,8 +99,7 @@ namespace PLSignals.Patches
             }
             else
             {
-                // Any other reservation is a normal train movement: make sure no stale
-                // shunt override is left behind.
+                // Normal train movement: drop any stale shunt override.
                 RevertShunt(signal);
             }
         }
@@ -132,8 +119,7 @@ namespace PLSignals.Patches
 
         private static void OnReservationRequestResult(int id, bool result)
         {
-            // Multiplayer reservation attempts are asynchronous: a failed one must not
-            // leak into the next reservation of the same signal.
+            // MP attempts are async; a failed one must not leak into the next reservation.
             if (result) return;
 
             SignalBase? failed = null;
@@ -189,8 +175,8 @@ namespace PLSignals.Patches
     }
 
     /// <summary>
-    /// Marks reservation renewals, so the tracker does not treat the clear + re-reserve
-    /// performed by <see cref="TrackReserver.UpdateReservation"/> as a new train movement.
+    /// Marks the clear + re-reserve inside <see cref="TrackReserver.UpdateReservation"/> as a renewal,
+    /// not a new train movement.
     /// </summary>
     [HarmonyPatch(typeof(TrackReserver), nameof(TrackReserver.UpdateReservation))]
     internal static class ShuntReservationRenewalPatch

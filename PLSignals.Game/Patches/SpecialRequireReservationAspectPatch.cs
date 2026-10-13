@@ -6,9 +6,8 @@ using Signals.Game.Railway;
 namespace PLSignals.Patches
 {
     /// <summary>
-    /// Patches <see cref="SpecialRequireReservationAspect.MeetsConditions"/> so that
-    /// shunting signals that are virtually reserved don't show STOP.
-    /// Only active when the PLSignals pack is the currently selected signal pack.
+    /// Keeps virtually reserved shunting signals from showing STOP via
+    /// <see cref="SpecialRequireReservationAspect.MeetsConditions"/>. Only active while the PLSignals pack is selected.
     /// </summary>
     [HarmonyPatch(typeof(SpecialRequireReservationAspect), nameof(SpecialRequireReservationAspect.MeetsConditions))]
     internal static class SpecialRequireReservationAspectPatch
@@ -17,10 +16,9 @@ namespace PLSignals.Patches
         {
             if (!VirtualReservationHelper.IsOurPackActive()) return;
 
-            // Only override when the original result was true (showing STOP because no reservation).
+            // Only the "showing STOP" case is overridden.
             if (!__result) return;
 
-            // Only apply to shunting signals that are virtually reserved.
             if (!__instance.Signal.IsShunting) return;
 
             if (VirtualReservationHelper.VirtualReservations.Contains(__instance.Signal))

@@ -16,8 +16,7 @@ namespace PLSignals.Patches
         internal const string ModId = "PLSignals";
 
         /// <summary>
-        /// Tracks which main signal spawned which virtual reservations.
-        /// Key: main signal that was reserved, Value: list of virtually reserved shunting signals.
+        /// Main signal → shunting signals whose virtual reservations it spawned.
         /// </summary>
         internal static readonly Dictionary<SignalBase, List<SignalBase>> PropagationMap = new Dictionary<SignalBase, List<SignalBase>>();
 
@@ -38,8 +37,7 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Adds a virtual reservation: the signal appears reserved (HasReservation returns true)
-        /// without actually owning any tracks in s_reservations.
+        /// Makes the signal look reserved (HasReservation) without owning any tracks in s_reservations.
         /// </summary>
         internal static void AddVirtualReservation(SignalBase signal)
         {
@@ -52,9 +50,6 @@ namespace PLSignals.Patches
             VirtualReservations.Add(signal);
         }
 
-        /// <summary>
-        /// Removes a virtual reservation, cleaning up s_signals, s_clearRoutines and s_times.
-        /// </summary>
         internal static bool RemoveVirtualReservation(SignalBase signal)
         {
             if (!VirtualReservations.Remove(signal)) return false;
@@ -85,8 +80,7 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Clears all virtual reservations associated with a specific main signal.
-        /// Called when the main signal's reservation expires or is cleared.
+        /// Called when a main signal's reservation ends; drops the virtual reservations it spawned.
         /// </summary>
         internal static void ClearVirtualReservationsFor(SignalBase mainSignal)
         {
@@ -102,9 +96,8 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Checks if a shunting signal's block is entirely contained within another signal's
-        /// reservation, with matching track directions. This prevents merging branches from
-        /// being incorrectly considered contained.
+        /// True when the shunting block lies entirely inside another signal's reservation with matching
+        /// directions; the direction check keeps merging branches from counting as contained.
         /// </summary>
         internal static bool IsBlockContainedInReservation(SignalBase shuntingSignal)
         {
@@ -145,29 +138,23 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Propagates virtual reservations from a reserved main signal to all downstream
-        /// shunting signals. Walks the reserved track path in order and virtually reserves
-        /// shunting signals until hitting an occupied track. Only reserves shunting signals
-        /// whose tracks point in the same direction as the reserved path.
+        /// Virtually reserves downstream shunting signals along the reserved path, stopping at the
+        /// first occupied track. Only signals whose tracks match the path's direction qualify.
         /// </summary>
         internal static void PropagateToShuntingSignals(SignalBase reservedSignal)
         {
             var block = reservedSignal.Block;
             if (block == null) return;
 
-            // If a truncated block exists (switch alignment disabled), use it instead.
-            // Otherwise use the full block.
+            // Switch alignment off: follow the truncated set instead of the full block.
             bool hasTruncated = TruncateReservationPatch.TruncatedBlocks.TryGetValue(reservedSignal, out var truncatedTracks);
 
-            // Build a set of TrackInfo (track + direction) from the reserved block.
             var reservedTrackSet = new HashSet<TrackInfo>();
 
-            // Build an ordered list for position-based sorting.
             var trackOrder = new Dictionary<RailTrack, int>();
 
             if (hasTruncated)
             {
-                // Use only the tracks up to the misaligned switch.
                 int order = 0;
                 foreach (var trackInfo in block.Tracks)
                 {
@@ -185,7 +172,6 @@ namespace PLSignals.Patches
                 }
             }
 
-            // Find overlapping shunting controllers and determine their order.
             var candidates = new List<(BasicSignalController Controller, SignalBase Shunting, int Order)>();
 
             foreach (var controller in SignalManager.Instance.AllControllers)
@@ -198,8 +184,7 @@ namespace PLSignals.Patches
 
                     var shuntingTracks = shunting.Block.Tracks;
 
-                    // Check that ALL shunting tracks are in the reserved set with matching direction.
-                    // This prevents reserving signals that point the wrong way.
+                    // Every track must match the reserved set and direction, so wrong-way signals stay out.
                     bool allContained = true;
                     int earliestOrder = int.MaxValue;
 
@@ -223,26 +208,21 @@ namespace PLSignals.Patches
                 }
             }
 
-            // Sort by position along the reserved path (earliest first).
             candidates.Sort((a, b) => a.Order.CompareTo(b.Order));
 
-            // Build the propagation map entry for this main signal.
             if (!PropagationMap.ContainsKey(reservedSignal))
             {
                 PropagationMap[reservedSignal] = new List<SignalBase>();
             }
 
-            // Walk in order, stopping at the first occupied track.
             foreach (var (controller, shunting, _) in candidates)
             {
-                // Check if the shunting signal's tracks are occupied.
                 if (shunting.Block!.IsOccupied(CrossingCheckMode.WholeTrack))
                 {
                     SignalsMod.Log($"Propagation stopped at {controller.Name} ({shunting.Name}): tracks occupied");
                     break;
                 }
 
-                // Virtually reserve this shunting signal.
                 if (!TrackReserver.HasReservation(shunting))
                 {
                     AddVirtualReservation(shunting);
@@ -267,9 +247,8 @@ namespace PLSignals.Patches
     }
 
     /// <summary>
-    /// Patches <see cref="TrackReserver.ReserveForSignal(SignalBase)"/> to allow shunting signals
-    /// to be reserved when their block is contained within a main signal's reservation
-    /// (with matching directions), and to propagate reservations to downstream shunting signals.
+    /// Lets shunting signals reserve when their block sits inside a main signal's reservation
+    /// (matching directions), and propagates reservations to downstream shunting signals.
     /// </summary>
     [HarmonyPatch(typeof(TrackReserver), nameof(TrackReserver.ReserveForSignal), new[] { typeof(SignalBase) })]
     internal static class ReserveForSignalPatch
@@ -280,7 +259,6 @@ namespace PLSignals.Patches
 
             if (__result)
             {
-                // Reservation succeeded for a main signal - propagate to downstream shunting signals.
                 if (!signal.IsShunting)
                 {
                     VirtualReservationHelper.PropagateToShuntingSignals(signal);
@@ -290,8 +268,6 @@ namespace PLSignals.Patches
 
             if (!signal.IsShunting) return;
 
-            // Check if the shunting signal's block is entirely contained within
-            // another signal's reservation, with matching track directions.
             if (VirtualReservationHelper.IsBlockContainedInReservation(signal))
             {
                 VirtualReservationHelper.AddVirtualReservation(signal);
@@ -301,9 +277,8 @@ namespace PLSignals.Patches
     }
 
     /// <summary>
-    /// Patches <see cref="TrackReserver.ClearFromSignal"/> to properly clean up virtual
-    /// reservations that were added for contained shunting signals.
-    /// Also clears propagated virtual reservations when a main signal's reservation expires.
+    /// Cleans up truncated-block tracking and virtual reservations when a reservation is cleared,
+    /// including propagated virtuals when a main signal's reservation expires.
     /// </summary>
     [HarmonyPatch(typeof(TrackReserver), nameof(TrackReserver.ClearFromSignal))]
     internal static class ClearFromSignalPatch
@@ -312,13 +287,8 @@ namespace PLSignals.Patches
         {
             if (!VirtualReservationHelper.IsOurPackActive()) return;
 
-            // Clean up truncated block tracking.
             TruncateReservationPatch.TruncatedBlocks.Remove(signal);
-
-            // If this is a virtual reservation, clean it up.
             VirtualReservationHelper.RemoveVirtualReservation(signal);
-
-            // If this main signal had propagated virtual reservations, clear them too.
             VirtualReservationHelper.ClearVirtualReservationsFor(signal);
         }
     }

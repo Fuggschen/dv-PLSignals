@@ -8,8 +8,7 @@ using SignalBase = Signals.Game.Signal;
 namespace PLSignals.Patches
 {
     /// <summary>
-    /// When the "Align Switches on Reserve" setting is off, this patch truncates the
-    /// track reservation at the first misaligned switch instead of flipping it.
+    /// With "Align Switches on Reserve" off, truncates the reservation at the first misaligned switch instead of flipping it.
     /// </summary>
     [HarmonyPatch(typeof(TrackReserver), nameof(TrackReserver.ReserveForSignal), new[] { typeof(SignalBase) })]
     internal static class TruncateReservationPatch
@@ -21,14 +20,12 @@ namespace PLSignals.Patches
             typeof(TrackReserver).GetField("s_signals", BindingFlags.NonPublic | BindingFlags.Static);
 
         /// <summary>
-        /// Stores the truncated reserved tracks for the most recently reserved signal,
-        /// so propagation logic can use it instead of the full block.
+        /// Truncated track set per reserved signal, used by propagation instead of the full block.
         /// </summary>
         internal static readonly Dictionary<SignalBase, HashSet<RailTrack>> TruncatedBlocks = new Dictionary<SignalBase, HashSet<RailTrack>>();
 
         private static bool Prefix(SignalBase signal, ref bool __result)
         {
-            // Only apply when our setting is off and pack is active.
             if (Main.Settings.AlignSwitchesOnReserve) return true;
             if (!SignalManager.Running || SignalManager.CurrentPack.ModId != "PLSignals") return true;
 
@@ -68,10 +65,8 @@ namespace PLSignals.Patches
             var hasTracks = false;
             var truncatedSet = new HashSet<RailTrack>();
 
-            // Walk tracks in order, stopping BEFORE the first misaligned switch.
             foreach (var trackInfo in block.Tracks)
             {
-                // Check if this is a misaligned junction track.
                 if (trackInfo.IsJunctionTrack)
                 {
                     var junction = trackInfo.Track.inJunction;
@@ -79,7 +74,7 @@ namespace PLSignals.Patches
                     if (trackInfo.Direction == TrackDirection.In &&
                         junction.outBranches[junction.selectedBranch].track != trackInfo.Track)
                     {
-                        // Misaligned switch found. Stop before including this track.
+                        // Stop before the misaligned switch track.
                         break;
                     }
                 }
@@ -136,20 +131,17 @@ namespace PLSignals.Patches
     }
 
     /// <summary>
-    /// Prevents switch alignment when the setting is off. AlignAllSwitches is called
-    /// separately from ReserveForSignal in CommsRadioSignalReserver, so we need to
-    /// block it independently.
+    /// Blocks switch alignment when the setting is off. AlignAllSwitches runs outside
+    /// ReserveForSignal (CommsRadioSignalReserver calls it separately), so it needs its own guard.
     /// </summary>
     [HarmonyPatch(typeof(SignalBase), "AlignAllSwitches")]
     internal static class AlignAllSwitchesPatch
     {
         private static bool Prefix()
         {
-            // Only block when our setting is off and pack is active.
             if (Main.Settings.AlignSwitchesOnReserve) return true;
             if (!SignalManager.Running || SignalManager.CurrentPack.ModId != "PLSignals") return true;
 
-            // Setting is off — skip switch alignment.
             return false;
         }
     }

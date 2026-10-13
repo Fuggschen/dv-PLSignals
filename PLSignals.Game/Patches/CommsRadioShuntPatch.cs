@@ -10,12 +10,8 @@ using SignalBase = Signals.Game.Signal;
 namespace PLSignals.Patches
 {
     /// <summary>
-    /// Adds a "SHUNT" option to the Comms Radio signal reservation menu, after the
-    /// regular durations. Selecting it reserves the signal for 60 seconds and marks
-    /// the movement as a shunt move (see <see cref="ShuntReservationTracker"/>).
-    ///
-    /// <c>CommsRadioSignalReserver</c> is internal to the DV Signals framework, so all
-    /// member access goes through reflection.
+    /// Adds a SHUNT option to the Comms Radio reservation menu (60s reservation, marks a shunt move).
+    /// <c>CommsRadioSignalReserver</c> is internal to the framework, so all member access goes through reflection.
     /// </summary>
     internal static class CommsRadioShuntOption
     {
@@ -46,8 +42,6 @@ namespace PLSignals.Patches
 
         internal static MethodBase GetMethod(string name) => AccessTools.Method(s_radioType, name)!;
 
-        // --- Reflection helpers ----------------------------------------------
-
         private static int GetDurationIndex(object instance) => (int)s_durationIndexField.GetValue(instance)!;
         private static void SetDurationIndex(object instance, int value) => s_durationIndexField.SetValue(instance, value);
         private static SignalBase? GetSignal(object instance) => (SignalBase?)s_signalField.GetValue(instance);
@@ -57,12 +51,9 @@ namespace PLSignals.Patches
         private static CommsRadioDisplay? GetDisplay(object instance) => (CommsRadioDisplay?)s_displayField.GetValue(instance);
         private static void InvokeSetDisplayToSignal(object instance) => s_setDisplayToSignalMethod.Invoke(instance, null);
 
-        // --- Behaviour -------------------------------------------------------
-
         /// <summary>
-        /// Cycles through the reservation options (the 5 durations plus SHUNT).
-        /// Returns <see langword="false"/> when the cycle was handled here and the
-        /// original method should be skipped.
+        /// Cycles the reservation options (5 durations plus SHUNT); returns <see langword="false"/>
+        /// when handled here so the original method is skipped.
         /// </summary>
         internal static bool CyclePrefix(object __instance, ref bool __result, int direction)
         {
@@ -87,8 +78,7 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Registers a pending SHUNT reservation so the tracker can enable shunting
-        /// once the reservation actually succeeds.
+        /// Registers a pending SHUNT attempt so the tracker can enable shunting on success.
         /// </summary>
         internal static void OnUsePrefix(object __instance)
         {
@@ -104,9 +94,8 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// Drops the pending SHUNT attempt if the reservation failed synchronously.
-        /// While a multiplayer request is in flight the radio is locked and the result
-        /// arrives asynchronously, so the attempt is kept for the tracker.
+        /// Drops the pending SHUNT attempt on synchronous failure. MP requests stay pending:
+        /// the radio is locked and the result arrives later.
         /// </summary>
         internal static void OnUsePostfix(object __instance)
         {
