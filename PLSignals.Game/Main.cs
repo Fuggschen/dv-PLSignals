@@ -32,6 +32,7 @@ public static class Main
 		}
 
 		PLMPUtil.LoadIntegration(modEntry);
+		Patches.ShuntReservationTracker.Initialize();
 
 		return true;
 	}

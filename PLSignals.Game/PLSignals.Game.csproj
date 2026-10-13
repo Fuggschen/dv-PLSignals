@@ -25,6 +25,7 @@
 		<Reference Include="UnityEngine"/>
 		<Reference Include="UnityEngine.CoreModule"/>
 		<Reference Include="UnityEngine.IMGUIModule"/>
+		<Reference Include="Unity.TextMeshPro"/>
 	</ItemGroup>
 
 	<!-- Mod Loader -->
