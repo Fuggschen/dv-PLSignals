@@ -923,8 +923,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Renderers:
   - {fileID: 2733732872232322301}
-  Colour: {r: 1, g: 1, b: 1, a: 1}
-  LightIntensity: 4
+  Colour: {r: 0.8941177, g: 0.9176471, b: 0.8941177, a: 1}
+  LightIntensity: 1
   Lag: 0.12
   Binary: 0
   NightOnly: 0
@@ -1026,8 +1026,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Renderers:
   - {fileID: 1501455075031789121}
-  Colour: {r: 0, g: 0.5058824, b: 1, a: 1}
-  LightIntensity: 4
+  Colour: {r: 0.003921569, g: 0.4156863, b: 1, a: 1}
+  LightIntensity: 1
   Lag: 0.12
   Binary: 0
   NightOnly: 0

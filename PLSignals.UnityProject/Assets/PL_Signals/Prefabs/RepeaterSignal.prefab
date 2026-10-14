@@ -597,8 +597,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Renderers:
   - {fileID: 7194230970059308128}
-  Colour: {r: 1, g: 0.8235295, b: 0.16078432, a: 1}
-  LightIntensity: 2.5
+  Colour: {r: 0.8352942, g: 0.68235296, b: 0.15294118, a: 1}
+  LightIntensity: 1
   Lag: 0.12
   Binary: 0
   NightOnly: 0
@@ -1070,8 +1070,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Renderers:
   - {fileID: 2178691026924412220}
-  Colour: {r: 1, g: 1, b: 1, a: 1}
-  LightIntensity: 2.5
+  Colour: {r: 0.7176471, g: 0.7254902, b: 0.7254902, a: 1}
+  LightIntensity: 1
   Lag: 0.3
   Binary: 0
   NightOnly: 0
@@ -1204,8 +1204,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Renderers:
   - {fileID: 8695388526152343736}
-  Colour: {r: 0.10980393, g: 0.9921569, b: 0.5254902, a: 1}
-  LightIntensity: 2.5
+  Colour: {r: 0.14509805, g: 0.7294118, b: 0.40784317, a: 1}
+  LightIntensity: 1
   Lag: 0.12
   Binary: 0
   NightOnly: 0
