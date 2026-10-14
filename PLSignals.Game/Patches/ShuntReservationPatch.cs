@@ -186,7 +186,8 @@ namespace PLSignals.Patches
             ShuntReservationTracker.BeginRenewal(signal);
         }
 
-        private static void Postfix(SignalBase signal)
+        // Finalizer so the counter is released even when the original throws.
+        private static void Finalizer(SignalBase signal)
         {
             ShuntReservationTracker.EndRenewal(signal);
         }

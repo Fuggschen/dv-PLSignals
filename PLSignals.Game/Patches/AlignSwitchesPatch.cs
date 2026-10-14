@@ -25,8 +25,11 @@ namespace PLSignals.Patches
         /// </summary>
         internal static readonly Dictionary<SignalBase, HashSet<RailTrack>> TruncatedBlocks = new Dictionary<SignalBase, HashSet<RailTrack>>();
 
-        private static bool Prefix(SignalBase signal, ref bool __result)
+        private static bool Prefix(SignalBase signal, ref bool __result, out bool __state)
         {
+            // True when this prefix made the reservation instead of the original.
+            __state = false;
+
             if (Main.Settings.AlignSwitchesOnReserve) return true;
             if (!SignalManager.Running || SignalManager.CurrentPack.ModId != "PLSignals") return true;
 
@@ -49,29 +52,13 @@ namespace PLSignals.Patches
             var signals = (HashSet<SignalBase>)s_signalsField.GetValue(null)!;
 
             var truncatedSet = ComputeTruncatedTracks(block);
-
-            var includedJunctions = new HashSet<Junction>();
-            foreach (var trackInfo in block.Tracks)
-            {
-                if (truncatedSet.Contains(trackInfo.Track) && trackInfo.IsJunctionTrack)
-                {
-                    includedJunctions.Add(trackInfo.Track.inJunction);
-                }
-            }
-
-            foreach (var track in block.ExtraTracks)
-            {
-                // Extra tracks never extend past the truncation point.
-                if (truncatedSet.Contains(track) && !track.isJunctionTrack)
-                {
-                    truncatedSet.Add(track);
-                }
-            }
+            var reservedSet = ComputeReservedTracks(block, truncatedSet);
 
             // Only the truncated tracks can conflict; a reservation past the misaligned switch never blocks this one.
-            foreach (var track in truncatedSet)
+            // TrackChecker also covers crossings, like the original.
+            foreach (var track in reservedSet)
             {
-                if (reservations.TryGetValue(track, out var by) && by.Controller != signal.Controller)
+                if (TrackChecker.IsReservedByAnother(track, signal))
                 {
                     __result = false;
                     return false;
@@ -85,7 +72,7 @@ namespace PLSignals.Patches
 
             var hasTracks = false;
 
-            foreach (var track in truncatedSet)
+            foreach (var track in reservedSet)
             {
                 if (!reservations.ContainsKey(track))
                 {
@@ -105,8 +92,21 @@ namespace PLSignals.Patches
 
             TruncatedBlocks[signal] = truncatedSet;
 
+            __state = true;
             __result = true;
             return false;
+        }
+
+        /// <summary>
+        /// A full-block reservation replaces any earlier truncated one. Runs first so propagation sees the cleaned map.
+        /// </summary>
+        [HarmonyPriority(Priority.First)]
+        private static void Postfix(SignalBase signal, bool __result, bool __state)
+        {
+            if (__result && !__state)
+            {
+                TruncatedBlocks.Remove(signal);
+            }
         }
 
         /// <summary>
@@ -134,6 +134,27 @@ namespace PLSignals.Patches
             }
 
             return truncatedSet;
+        }
+
+        /// <summary>
+        /// Truncated tracks plus all branches of the switches they pass (like <see cref="TrackBlock.AllTracks"/>), so no other route can flip one.
+        /// </summary>
+        internal static HashSet<RailTrack> ComputeReservedTracks(TrackBlock block, HashSet<RailTrack> truncatedSet)
+        {
+            var reservedSet = new HashSet<RailTrack>(truncatedSet);
+
+            foreach (var trackInfo in block.Tracks)
+            {
+                if (!truncatedSet.Contains(trackInfo.Track)) break;
+
+                if (trackInfo.IsJunctionTrack)
+                {
+                    // Same as the framework's internal Junction.GetAllTracks().
+                    reservedSet.UnionWith(trackInfo.Track.inJunction.outBranches.Select(x => x.track));
+                }
+            }
+
+            return reservedSet;
         }
 
         /// <summary>
@@ -165,14 +186,23 @@ namespace PLSignals.Patches
     /// Vanilla <c>TrackReserver.UpdateReservation</c> rejects on any full-block conflict, and a rejected
     /// update makes <c>BasicSignalController.Update</c> drop the reservation entirely. Conflicts past the
     /// truncation point must not count, or trimmed reservations die on every block update.
+    /// Virtual reservations own no tracks, so they are checked against their main reservation instead of re-reserved.
     /// </summary>
     [HarmonyPatch(typeof(TrackReserver), nameof(TrackReserver.UpdateReservation))]
     internal static class TruncateUpdateReservationPatch
     {
         private static bool Prefix(SignalBase signal, ref bool __result)
         {
-            if (Main.Settings.AlignSwitchesOnReserve) return true;
             if (!SignalManager.Running || SignalManager.CurrentPack.ModId != "PLSignals") return true;
+
+            if (VirtualReservationHelper.VirtualReservations.Contains(signal))
+            {
+                // A rejected update makes the controller clear the virtual reservation.
+                __result = VirtualReservationHelper.IsVirtualStillValid(signal);
+                return false;
+            }
+
+            if (Main.Settings.AlignSwitchesOnReserve) return true;
 
             var block = signal.Block;
             if (!TrackReserver.HasReservation(signal) || block == null)
@@ -181,7 +211,9 @@ namespace PLSignals.Patches
                 return false;
             }
 
-            foreach (var track in TruncateReservationPatch.ComputeTruncatedTracks(block))
+            var truncatedSet = TruncateReservationPatch.ComputeTruncatedTracks(block);
+
+            foreach (var track in TruncateReservationPatch.ComputeReservedTracks(block, truncatedSet))
             {
                 if (TrackChecker.IsReservedByAnother(track, signal))
                 {

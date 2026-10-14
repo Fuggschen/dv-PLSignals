@@ -22,6 +22,11 @@ namespace PLSignals.Patches
 
         internal static readonly HashSet<SignalBase> VirtualReservations = new HashSet<SignalBase>();
 
+        /// <summary>
+        /// Virtually reserved shunting signal → main signal whose reservation contains it.
+        /// </summary>
+        private static readonly Dictionary<SignalBase, SignalBase> s_virtualOwners = new Dictionary<SignalBase, SignalBase>();
+
         internal static readonly FieldInfo? s_signalsField =
             typeof(TrackReserver).GetField("s_signals", BindingFlags.NonPublic | BindingFlags.Static);
 
@@ -38,8 +43,9 @@ namespace PLSignals.Patches
 
         /// <summary>
         /// Makes the signal look reserved (HasReservation) without owning any tracks in s_reservations.
+        /// The virtual reservation ends together with <paramref name="owner"/>'s reservation.
         /// </summary>
-        internal static void AddVirtualReservation(SignalBase signal)
+        internal static void AddVirtualReservation(SignalBase signal, SignalBase owner)
         {
             if (s_signalsField != null)
             {
@@ -48,11 +54,40 @@ namespace PLSignals.Patches
             }
 
             VirtualReservations.Add(signal);
+
+            if (s_virtualOwners.TryGetValue(signal, out var previousOwner) && previousOwner != owner &&
+                PropagationMap.TryGetValue(previousOwner, out var previousList))
+            {
+                previousList.Remove(signal);
+            }
+
+            s_virtualOwners[signal] = owner;
+
+            if (!PropagationMap.TryGetValue(owner, out var list))
+            {
+                list = new List<SignalBase>();
+                PropagationMap[owner] = list;
+            }
+
+            if (!list.Contains(signal))
+            {
+                list.Add(signal);
+            }
         }
 
         internal static bool RemoveVirtualReservation(SignalBase signal)
         {
             if (!VirtualReservations.Remove(signal)) return false;
+
+            if (s_virtualOwners.TryGetValue(signal, out var owner))
+            {
+                s_virtualOwners.Remove(signal);
+
+                if (PropagationMap.TryGetValue(owner, out var list))
+                {
+                    list.Remove(signal);
+                }
+            }
 
             if (s_signalsField != null)
             {
@@ -86,7 +121,8 @@ namespace PLSignals.Patches
         {
             if (!PropagationMap.TryGetValue(mainSignal, out var virtuals)) return;
 
-            foreach (var signal in virtuals)
+            // RemoveVirtualReservation edits the list, so iterate a copy.
+            foreach (var signal in virtuals.ToList())
             {
                 RemoveVirtualReservation(signal);
                 SignalsMod.Log($"Cleared virtual reservation for {signal.Name}");
@@ -96,45 +132,97 @@ namespace PLSignals.Patches
         }
 
         /// <summary>
-        /// True when the shunting block lies entirely inside another signal's reservation with matching
-        /// directions; the direction check keeps merging branches from counting as contained.
+        /// Drops virtual reservations that <paramref name="mainSignal"/>'s renewed path no longer covers.
         /// </summary>
-        internal static bool IsBlockContainedInReservation(SignalBase shuntingSignal)
+        internal static void RevalidateVirtualReservationsFor(SignalBase mainSignal)
+        {
+            if (!PropagationMap.TryGetValue(mainSignal, out var virtuals)) return;
+
+            foreach (var signal in virtuals.ToList())
+            {
+                if (IsVirtualStillValid(signal)) continue;
+
+                RemoveVirtualReservation(signal);
+                SignalsMod.Log($"Cleared stale virtual reservation for {signal.Name}");
+            }
+        }
+
+        /// <summary>
+        /// The ordered tracks a signal actually holds: the truncated walk with switch alignment off, the full block otherwise.
+        /// </summary>
+        internal static List<TrackInfo>? GetReservedPath(SignalBase signal)
+        {
+            var block = signal.Block;
+            if (block == null) return null;
+
+            if (!TruncateReservationPatch.TruncatedBlocks.TryGetValue(signal, out var truncatedTracks))
+            {
+                return block.Tracks.ToList();
+            }
+
+            var path = new List<TrackInfo>();
+
+            foreach (var trackInfo in block.Tracks)
+            {
+                if (!truncatedTracks.Contains(trackInfo.Track)) break;
+                path.Add(trackInfo);
+            }
+
+            return path;
+        }
+
+        /// <summary>
+        /// True while the shunting block lies entirely inside <paramref name="owner"/>'s reserved path with matching directions.
+        /// </summary>
+        private static bool IsContainedIn(SignalBase shuntingSignal, SignalBase owner)
         {
             var block = shuntingSignal.Block;
-            if (block == null) return false;
+            if (block == null || !TrackReserver.HasReservation(owner)) return false;
 
-            var shuntingTracks = block.Tracks;
+            var ownerPath = GetReservedPath(owner);
+            if (ownerPath == null) return false;
 
-            foreach (var trackInfo in shuntingTracks)
+            var ownerTrackSet = new HashSet<TrackInfo>(ownerPath);
+
+            foreach (var st in block.Tracks)
             {
-                if (!TrackReserver.IsTrackReserved(trackInfo.Track, out var by) || by.Controller == shuntingSignal.Controller)
+                if (!TrackReserver.IsTrackReservedBy(st.Track, owner) || !ownerTrackSet.Contains(st))
                 {
                     return false;
                 }
-
-                var mainBlock = by.Block;
-                if (mainBlock == null) return false;
-
-                var mainTrackSet = new HashSet<TrackInfo>(mainBlock.Tracks);
-
-                foreach (var st in shuntingTracks)
-                {
-                    if (!TrackReserver.IsTrackReserved(st.Track, out var by2) || by2.Controller == shuntingSignal.Controller)
-                    {
-                        return false;
-                    }
-
-                    if (!mainTrackSet.Contains(st))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
             }
 
-            return false;
+            return true;
+        }
+
+        /// <summary>
+        /// True when the virtual reservation's owner still holds a reservation that contains it.
+        /// </summary>
+        internal static bool IsVirtualStillValid(SignalBase signal)
+        {
+            return s_virtualOwners.TryGetValue(signal, out var owner) && IsContainedIn(signal, owner);
+        }
+
+        /// <summary>
+        /// True when the shunting block lies entirely inside another controller's reservation with matching
+        /// directions; the direction check keeps merging branches from counting as contained.
+        /// </summary>
+        internal static bool IsBlockContainedInReservation(SignalBase shuntingSignal, out SignalBase? owner)
+        {
+            owner = null;
+
+            var block = shuntingSignal.Block;
+            if (block == null || block.Tracks.Length == 0) return false;
+
+            if (!TrackReserver.IsTrackReserved(block.Tracks[0].Track, out var by) || by.Controller == shuntingSignal.Controller)
+            {
+                return false;
+            }
+
+            if (!IsContainedIn(shuntingSignal, by)) return false;
+
+            owner = by;
+            return true;
         }
 
         /// <summary>
@@ -143,33 +231,16 @@ namespace PLSignals.Patches
         /// </summary>
         internal static void PropagateToShuntingSignals(SignalBase reservedSignal)
         {
-            var block = reservedSignal.Block;
-            if (block == null) return;
-
             // Switch alignment off: follow the truncated set instead of the full block.
-            bool hasTruncated = TruncateReservationPatch.TruncatedBlocks.TryGetValue(reservedSignal, out var truncatedTracks);
+            var path = GetReservedPath(reservedSignal);
+            if (path == null) return;
 
-            var reservedTrackSet = new HashSet<TrackInfo>();
-
+            var reservedTrackSet = new HashSet<TrackInfo>(path);
             var trackOrder = new Dictionary<RailTrack, int>();
 
-            if (hasTruncated)
+            for (int i = 0; i < path.Count; i++)
             {
-                int order = 0;
-                foreach (var trackInfo in block.Tracks)
-                {
-                    if (!truncatedTracks!.Contains(trackInfo.Track)) break;
-                    reservedTrackSet.Add(trackInfo);
-                    trackOrder[trackInfo.Track] = order++;
-                }
-            }
-            else
-            {
-                reservedTrackSet = new HashSet<TrackInfo>(block.Tracks);
-                for (int i = 0; i < block.Tracks.Length; i++)
-                {
-                    trackOrder[block.Tracks[i].Track] = i;
-                }
+                trackOrder[path[i].Track] = i;
             }
 
             var candidates = new List<(BasicSignalController Controller, SignalBase Shunting, int Order)>();
@@ -210,11 +281,6 @@ namespace PLSignals.Patches
 
             candidates.Sort((a, b) => a.Order.CompareTo(b.Order));
 
-            if (!PropagationMap.ContainsKey(reservedSignal))
-            {
-                PropagationMap[reservedSignal] = new List<SignalBase>();
-            }
-
             foreach (var (controller, shunting, _) in candidates)
             {
                 if (shunting.Block!.IsOccupied(CrossingCheckMode.WholeTrack))
@@ -225,8 +291,7 @@ namespace PLSignals.Patches
 
                 if (!TrackReserver.HasReservation(shunting))
                 {
-                    AddVirtualReservation(shunting);
-                    PropagationMap[reservedSignal].Add(shunting);
+                    AddVirtualReservation(shunting, reservedSignal);
                     SignalsMod.Log($"Virtually reserved shunting signal {shunting.Name} on {controller.Name}");
                 }
             }
@@ -243,6 +308,7 @@ namespace PLSignals.Patches
             }
 
             PropagationMap.Clear();
+            s_virtualOwners.Clear();
         }
     }
 
@@ -261,6 +327,8 @@ namespace PLSignals.Patches
             {
                 if (!signal.IsShunting)
                 {
+                    // Renewals keep the old virtuals; drop those the new path no longer covers.
+                    VirtualReservationHelper.RevalidateVirtualReservationsFor(signal);
                     VirtualReservationHelper.PropagateToShuntingSignals(signal);
                 }
                 return;
@@ -268,9 +336,9 @@ namespace PLSignals.Patches
 
             if (!signal.IsShunting) return;
 
-            if (VirtualReservationHelper.IsBlockContainedInReservation(signal))
+            if (VirtualReservationHelper.IsBlockContainedInReservation(signal, out var owner))
             {
-                VirtualReservationHelper.AddVirtualReservation(signal);
+                VirtualReservationHelper.AddVirtualReservation(signal, owner!);
                 __result = true;
             }
         }

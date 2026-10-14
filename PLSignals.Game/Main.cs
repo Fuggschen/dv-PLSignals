@@ -52,6 +52,9 @@ public static class Main
 
 	private static void OnSaveGUI(UnityModManager.ModEntry modEntry)
 	{
+		// Clients hold the host's value while connected; don't persist it over their own.
+		if (Signals.Game.MultiplayerIntegration.IsMpRunning && !Signals.Game.MultiplayerIntegration.IsHost) return;
+
 		Settings.Save(modEntry);
 		PLMPUtil.BroadcastSettings(Settings.AlignSwitchesOnReserve);
 	}

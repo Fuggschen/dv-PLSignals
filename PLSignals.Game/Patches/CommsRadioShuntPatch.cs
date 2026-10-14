@@ -15,14 +15,18 @@ namespace PLSignals.Patches
     /// </summary>
     internal static class CommsRadioShuntOption
     {
-        /// <summary>Index of the SHUNT entry in the option cycle.</summary>
-        private const int ShuntIndex = 5;
-        /// <summary>Option count: the 5 framework durations plus SHUNT.</summary>
-        private const int OptionCount = 6;
-        /// <summary>The framework duration slot used for SHUNT reservations (60 seconds).</summary>
-        private const int ShuntDurationIndex = 1;
+        /// <summary>Duration used for SHUNT reservations, in seconds.</summary>
+        private const float ShuntDuration = 60f;
 
         private static readonly Type s_radioType = AccessTools.TypeByName("Signals.Game.CommsRadioSignalReserver")!;
+        private static readonly float[] s_durations = (float[])AccessTools.Field(s_radioType, "s_durations")!.GetValue(null)!;
+
+        /// <summary>Index of the SHUNT entry in the option cycle, right after the framework durations.</summary>
+        private static readonly int ShuntIndex = s_durations.Length;
+        /// <summary>Option count: the framework durations plus SHUNT.</summary>
+        private static readonly int OptionCount = s_durations.Length + 1;
+        /// <summary>The framework duration slot used for SHUNT reservations, falling back to the first slot.</summary>
+        private static readonly int ShuntDurationIndex = Math.Max(Array.IndexOf(s_durations, ShuntDuration), 0);
         private static readonly FieldInfo s_durationIndexField = AccessTools.Field(s_radioType, "_durationIndex")!;
         private static readonly FieldInfo s_signalField = AccessTools.Field(s_radioType, "_signal")!;
         private static readonly FieldInfo s_activeField = AccessTools.Field(s_radioType, "_active")!;
