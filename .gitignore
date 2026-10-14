@@ -397,3 +397,5 @@ FodyWeavers.xsd
 
 # .nfs files are created when an open file is removed but is still being accessed
 .nfs*
+PLSignals.UnityProject/Assets/PL_Signals/PLSignals.zip.meta
+PLSignals.UnityProject/Assets/PL_Signals/PLSignals.zip
